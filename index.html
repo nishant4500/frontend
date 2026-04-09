@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaPort — AI Portfolio Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.15);
+    --text: #f0efe8;
+    --muted: #6b6b80;
+    --accent: #7c6dfa;
+    --accent2: #fa6d8e;
+    --accent3: #6dfacd;
+    --accent4: #fac76d;
+    --card-shadow: 0 0 0 0.5px var(--border), 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,109,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,109,250,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+  .orb1 { width: 500px; height: 500px; background: #7c6dfa; top: -100px; left: -100px; animation: drift1 20s ease-in-out infinite; }
+  .orb2 { width: 400px; height: 400px; background: #fa6d8e; bottom: -50px; right: -50px; animation: drift2 25s ease-in-out infinite; }
+  .orb3 { width: 300px; height: 300px; background: #6dfacd; top: 50%; left: 50%; transform: translate(-50%,-50%); animation: drift3 18s ease-in-out infinite; }
+
+  @keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-60px)} }
+  @keyframes drift3 { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-45%,-55%)} }
+
+  /* Layout */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto;
+    gap: 1.5rem;
+  }
+
+  /* Nav bar */
+  nav {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 2rem;
+    border-bottom: 0.5px solid var(--border);
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(12px);
+    grid-column: 1 / -1;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .nav-pill {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 0.5px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+  }
+  .nav-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--accent3);
+    border: 0.5px solid rgba(109,250,205,0.3);
+    padding: 5px 12px;
+    border-radius: 100px;
+    background: rgba(109,250,205,0.05);
+  }
+  .status-dot::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+  /* Card base */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: var(--border-bright); }
+
+  .card-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 0.5px;
+    background: var(--border);
+  }
+
+  /* Profile sidebar */
+  .profile-card {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .avatar-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+    padding: 2px;
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  .avatar-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+  }
+
+  .profile-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+  .profile-title {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1.2rem;
+    font-style: italic;
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .skill-bar-wrap { margin-bottom: 0.7rem; }
+  .skill-bar-top { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 4px; color: var(--text); }
+  .skill-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .skill-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    animation: barFill 1.5s ease forwards;
+    transform-origin: left;
+  }
+  @keyframes barFill { from{width:0} }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 0.5px solid var(--border);
+    color: var(--muted);
+    margin: 3px;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .tag:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Main grid area */
+  .main-area {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: all 0.3s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 12px 12px 0 0;
+    opacity: 0.6;
+  }
+  .stat-card.purple::before { background: var(--accent); }
+  .stat-card.pink::before { background: var(--accent2); }
+  .stat-card.teal::before { background: var(--accent3); }
+  .stat-card.amber::before { background: var(--accent4); }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--border-bright); }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* AI Section */
+  .ai-section { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  /* AI Chat */
+  .ai-chat { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  .chat-messages { flex: 1; display: flex; flex-direction: column; gap: 0.8rem; min-height: 180px; max-height: 260px; overflow-y: auto; }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .msg {
+    display: flex;
+    gap: 8px;
+    animation: fadeUp 0.3s ease;
+  }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  .msg-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+  .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
+  .msg.user .msg-avatar { background: var(--surface2); border: 0.5px solid var(--border-bright); color: var(--muted); }
+
+  .msg-bubble {
+    max-width: 75%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+  .msg.ai .msg-bubble { background: var(--surface2); border: 0.5px solid var(--border); border-top-left-radius: 4px; color: var(--text); }
+  .msg.user .msg-bubble { background: var(--accent); border-top-right-radius: 4px; color: white; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: #9080ff; transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .send-btn svg { width: 16px; height: 16px; fill: white; }
+
+  /* Skills radar / chart area */
+  .chart-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; padding: 1.5rem; }
+
+  /* Projects */
+  .projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .project-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .project-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .project-card.p1::after { background: linear-gradient(135deg, rgba(124,109,250,0.06), transparent); }
+  .project-card.p2::after { background: linear-gradient(135deg, rgba(250,109,142,0.06), transparent); }
+  .project-card.p3::after { background: linear-gradient(135deg, rgba(109,250,205,0.06), transparent); }
+  .project-card:hover::after { opacity: 1; }
+  .project-card:hover { transform: translateY(-3px); border-color: var(--border-bright); }
+
+  .project-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+  }
+  .project-name { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .project-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.6; margin-bottom: 0.8rem; }
+  .project-footer { display: flex; align-items: center; justify-content: space-between; }
+  .project-lang { font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .lang-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .project-stars { font-size: 0.65rem; color: var(--accent4); }
+
+  /* Timeline */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 1rem; position: relative; padding-bottom: 1.2rem; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+  .tl-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    z-index: 1;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .tl-line { width: 1px; flex: 1; background: var(--border); margin-top: 4px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-title { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+  .tl-meta { font-size: 0.65rem; color: var(--muted); margin-bottom: 4px; }
+  .tl-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
+
+  /* Typing animation */
+  .typing { display: flex; gap: 3px; align-items: center; padding: 6px 2px; }
+  .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s ease infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+  /* Counter animation */
+  .counter { display: inline-block; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .wrapper { grid-template-columns: 1fr; }
+    .profile-card, .main-area { grid-column: 1; grid-row: auto; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .ai-section { grid-template-columns: 1fr; }
+    .projects-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* Glow accent text */
+  .glow { color: var(--accent); }
+
+  /* Section heading */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+  }
+
+  /* Contribution heatmap */
+  .heatmap { display: flex; gap: 3px; flex-wrap: wrap; }
+  .hmap-cell {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    transition: transform 0.15s;
+  }
+  .hmap-cell:hover { transform: scale(1.4); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1rem; }
+  .tab {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 0.5px solid transparent;
+    padding: 5px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+  }
+  .tab:hover { color: var(--text); border-color: var(--border); }
+  .tab.active { background: var(--surface2); border-color: var(--border-bright); color: var(--text); }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Animate in */
+  .fade-in { animation: fadeIn 0.6s ease forwards; opacity: 0; }
+  @keyframes fadeIn { to { opacity: 1; } }
+  .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in:nth-child(3) { animation-delay: 0.3s; }
+  .fade-in:nth-child(4) { animation-delay: 0.4s; }
+
+  /* Copied badge */
+  .copy-badge { font-size: 0.62rem; color: var(--accent3); margin-left: 6px; opacity: 0; transition: opacity 0.3s; }
+  .copy-badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<nav>
+  <div class="logo">NexaPort</div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="nav-pill active" onclick="setView('portfolio')">Portfolio</button>
+    <button class="nav-pill" onclick="setView('resume')">Resume</button>
+    <button class="nav-pill" onclick="setView('contact')">Contact</button>
+  </div>
+  <div class="status-dot">Available for hire</div>
+</nav>
+
+<div class="wrapper">
+
+  <!-- Sidebar Profile -->
+  <div class="profile-card card fade-in">
+    <div class="card-label">Profile</div>
+
+    <div class="avatar-ring">
+      <div class="avatar-inner">👨‍💻</div>
+    </div>
+
+    <div class="profile-name">Alex Kumar</div>
+    <div class="profile-title">Full Stack Developer & Cloud Architect</div>
+
+    <div style="display:flex;justify-content:center;gap:12px;margin-bottom:1.5rem;">
+      <a href="#" style="color:var(--muted);text-decoration:none;font-size:0.7rem;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">GitHub</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;font-size:0.7rem;transition:color 0.2s;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">LinkedIn</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;font-size:0.7rem;transition:color 0.2s;" onmouseover="this.style.color='var(--accent3)'" onmouseout="this.style.color='var(--muted)'">Twitter</a>
+    </div>
+
+    <div class="card-label">Skills</div>
+
+    <div class="skill-bar-wrap">
+      <div class="skill-bar-top"><span>React / Next.js</span><span style="color:var(--accent)">95%</span></div>
+      <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:95%;background:var(--accent)"></div></div>
+    </div>
+    <div class="skill-bar-wrap">
+      <div class="skill-bar-top"><span>Node.js / APIs</span><span style="color:var(--accent2)">88%</span></div>
+      <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:88%;background:var(--accent2)"></div></div>
+    </div>
+    <div class="skill-bar-wrap">
+      <div class="skill-bar-top"><span>Azure / Cloud</span><span style="color:var(--accent3)">82%</span></div>
+      <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:82%;background:var(--accent3)"></div></div>
+    </div>
+    <div class="skill-bar-wrap">
+      <div class="skill-bar-top"><span>Python / ML</span><span style="color:var(--accent4)">75%</span></div>
+      <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:75%;background:var(--accent4)"></div></div>
+    </div>
+
+    <div style="margin-top:1.2rem;">
+      <div class="card-label" style="margin-bottom:0.8rem;">Stack</div>
+      <div>
+        <span class="tag">TypeScript</span>
+        <span class="tag">Docker</span>
+        <span class="tag">PostgreSQL</span>
+        <span class="tag">Redis</span>
+        <span class="tag">GraphQL</span>
+        <span class="tag">Terraform</span>
+        <span class="tag">CI/CD</span>
+        <span class="tag">Azure</span>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding-top:1.2rem;border-top:0.5px solid var(--border);">
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:6px;">📍 Noida, India</div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-bottom:6px;">✉️ alex@nexaport.dev</div>
+      <div style="font-size:0.68rem;color:var(--muted);">🎓 B.Tech Computer Science</div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-area">
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card purple fade-in">
+        <div class="stat-value glow"><span class="counter" data-target="47">0</span></div>
+        <div class="stat-label">Projects Built</div>
+      </div>
+      <div class="stat-card pink fade-in">
+        <div class="stat-value" style="color:var(--accent2)"><span class="counter" data-target="1200">0</span>+</div>
+        <div class="stat-label">GitHub Commits</div>
+      </div>
+      <div class="stat-card teal fade-in">
+        <div class="stat-value" style="color:var(--accent3)"><span class="counter" data-target="98">0</span>%</div>
+        <div class="stat-label">Client Satisfaction</div>
+      </div>
+      <div class="stat-card amber fade-in">
+        <div class="stat-value" style="color:var(--accent4)"><span class="counter" data-target="3">0</span></div>
+        <div class="stat-label">Years Experience</div>
+      </div>
+    </div>
+
+    <!-- AI Section -->
+    <div class="ai-section">
+
+      <!-- AI Chat Assistant -->
+      <div class="ai-chat">
+        <div class="card-label">AI Portfolio Assistant</div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg ai">
+            <div class="msg-avatar">AI</div>
+            <div class="msg-bubble">Hi! I'm Alex's AI assistant. Ask me anything about his projects, skills, or experience! 👋</div>
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" placeholder="Ask about skills, projects..." onkeydown="if(event.key==='Enter')sendMsg()">
+          <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+            <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contribution Heatmap -->
+      <div class="chart-card">
+        <div class="card-label">GitHub Contributions — 2025</div>
+        <div class="heatmap" id="heatmap" style="margin-bottom:0.8rem;"></div>
+        <div style="display:flex;gap:6px;align-items:center;font-size:0.62rem;color:var(--muted);">
+          <span>Less</span>
+          <div style="width:9px;height:9px;border-radius:2px;background:var(--surface2);border:0.5px solid var(--border)"></div>
+          <div style="width:9px;height:9px;border-radius:2px;background:#3c2fa0"></div>
+          <div style="width:9px;height:9px;border-radius:2px;background:#5b48db"></div>
+          <div style="width:9px;height:9px;border-radius:2px;background:#7c6dfa"></div>
+          <div style="width:9px;height:9px;border-radius:2px;background:#a99ffe"></div>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('projects')">Projects</button>
+        <button class="tab" onclick="switchTab('timeline')">Timeline</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-projects">
+        <div class="projects-grid">
+          <div class="project-card p1" onclick="void(0)">
+            <div class="project-icon" style="background:rgba(124,109,250,0.15);">🚀</div>
+            <div class="project-name">CloudFlow</div>
+            <div class="project-desc">Azure-native microservices orchestration platform with real-time monitoring.</div>
+            <div class="project-footer">
+              <div class="project-lang"><div class="lang-dot" style="background:#3178c6"></div>TypeScript</div>
+              <div class="project-stars">★ 248</div>
+            </div>
+          </div>
+          <div class="project-card p2" onclick="void(0)">
+            <div class="project-icon" style="background:rgba(250,109,142,0.15);">🧠</div>
+            <div class="project-name">NeuralChat</div>
+            <div class="project-desc">Real-time AI chat with RAG, memory, and multi-model routing.</div>
+            <div class="project-footer">
+              <div class="project-lang"><div class="lang-dot" style="background:#f7df1e"></div>JavaScript</div>
+              <div class="project-stars">★ 891</div>
+            </div>
+          </div>
+          <div class="project-card p3" onclick="void(0)">
+            <div class="project-icon" style="background:rgba(109,250,205,0.15);">📊</div>
+            <div class="project-name">DataScope</div>
+            <div class="project-desc">Interactive data visualization dashboard with D3.js and live pipelines.</div>
+            <div class="project-footer">
+              <div class="project-lang"><div class="lang-dot" style="background:#3572a5"></div>Python</div>
+              <div class="project-stars">★ 412</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-timeline">
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div>
+            <div>
+              <div class="tl-title">Microsoft Azure Certified</div>
+              <div class="tl-meta">2025 · Certification</div>
+              <div class="tl-desc">AZ-900, AZ-204 Developer Associate, AZ-400 DevOps Engineer.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-left"><div class="tl-dot" style="background:var(--accent2)"></div><div class="tl-line"></div></div>
+            <div>
+              <div class="tl-title">Full Stack Developer Intern</div>
+              <div class="tl-meta">2024 · Infosys, Noida</div>
+              <div class="tl-desc">Built React dashboards and Node.js microservices serving 50k+ users.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-left"><div class="tl-dot" style="background:var(--accent3)"></div><div class="tl-line"></div></div>
+            <div>
+              <div class="tl-title">Smart India Hackathon — Winner</div>
+              <div class="tl-meta">2024 · National Level</div>
+              <div class="tl-desc">1st place in AI/ML category with an edge computing health diagnostics system.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-left"><div class="tl-dot" style="background:var(--accent4)"></div><div class="tl-line"></div></div>
+            <div>
+              <div class="tl-title">B.Tech CSE Enrolled</div>
+              <div class="tl-meta">2022 · Noida</div>
+              <div class="tl-desc">Specialization in Cloud Computing and Artificial Intelligence.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Counter animation ───────────────────────────────────────────────
+function animateCounters() {
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const duration = 1500;
+    const start = performance.now();
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(ease * target).toLocaleString();
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  });
+}
+setTimeout(animateCounters, 400);
+
+// ─── Heatmap generation ──────────────────────────────────────────────
+const heatmapEl = document.getElementById('heatmap');
+const cells = 182;
+const colors = ['var(--surface2)', '#2d2460', '#3c2fa0', '#5b48db', '#7c6dfa', '#a99ffe'];
+for (let i = 0; i < cells; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'hmap-cell';
+  const r = Math.random();
+  const ci = r < 0.35 ? 0 : r < 0.55 ? 1 : r < 0.70 ? 2 : r < 0.83 ? 3 : r < 0.93 ? 4 : 5;
+  cell.style.background = colors[ci];
+  const contributions = [0, 1, 3, 5, 8, 12][ci];
+  cell.title = contributions ? `${contributions} contributions` : 'No contributions';
+  heatmapEl.appendChild(cell);
+}
+
+// ─── Tab switching ───────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['projects','timeline'][i] === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+
+// ─── View switching ──────────────────────────────────────────────────
+function setView(v) {
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ─── AI Chat with Anthropic API ──────────────────────────────────────
+const SYSTEM = `You are Alex Kumar's personal AI portfolio assistant embedded in his portfolio website. 
+Alex is a Full Stack Developer and Cloud Architect based in Noida, India.
+Skills: React, Next.js, Node.js, TypeScript, Python, Azure, Docker, PostgreSQL, GraphQL, Terraform.
+Projects: CloudFlow (Azure microservices, 248 stars), NeuralChat (AI chat with RAG, 891 stars), DataScope (D3.js viz, 412 stars).
+Experience: Infosys intern 2024, Smart India Hackathon winner 2024, Azure certified (AZ-900, AZ-204, AZ-400).
+Be concise, friendly, and enthusiastic. Keep replies under 3 sentences. Use emojis sparingly.`;
+
+let history = [];
+
+async function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  btn.disabled = true;
+
+  appendMsg('user', msg);
+  history.push({ role: 'user', content: msg });
+
+  // Typing indicator
+  const typingId = appendTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: history
+      })
+    });
+    const data = await res.json();
+    removeTyping(typingId);
+
+    const reply = data.content?.[0]?.text || "Sorry, I couldn't process that.";
+    history.push({ role: 'assistant', content: reply });
+    appendMsg('ai', reply);
+  } catch (e) {
+    removeTyping(typingId);
+    appendMsg('ai', "I'm having trouble connecting right now. Try again in a moment!");
+  }
+
+  btn.disabled = false;
+}
+
+function appendMsg(role, text) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'ai' ? 'AI' : 'You'}</div>
+    <div class="msg-bubble">${text.replace(/</g,'&lt;')}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+let typingCounter = 0;
+function appendTyping() {
+  const id = 'typing-' + (++typingCounter);
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = id;
+  div.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+</script>
+</body>
+</html>
